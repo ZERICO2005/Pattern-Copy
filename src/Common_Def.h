@@ -46,10 +46,10 @@ typedef double fp64;
 
 /* Version */
 
-#define PROGRAM_NAME ""
-#define PROGRAM_DATE "" /* YYYY/MM/DD */
-#define PROGRAM_V_MAJOR 0
-#define PROGRAM_V_MINOR 0
+#define PROGRAM_NAME "Pattern-Copy"
+#define PROGRAM_DATE "2024/01/24" /* YYYY/MM/DD */
+#define PROGRAM_V_MAJOR 1
+#define PROGRAM_V_MINOR 1
 #define PROGRAM_V_PATCH 0
 #define PROGRAM_V_TAG ""
 

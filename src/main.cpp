@@ -96,13 +96,14 @@ void printTestStatistics(uint64_t totalTime, const uint64_t* testTime, size_t te
 int testMethod(
 	const Method_Test* method,
 	uint8_t* buf, size_t bufSize, const uint8_t* testData,
-	BufferBox box, size_t testCount = 1, uint32_t seed = 123456
+	BufferBox box, FILE *file, size_t testCount = 1, uint32_t seed = 123456
 ) {
 	if (method == nullptr) {
 		printError("method is nullptr");
 		return -1;
 	}
 	printf("\nMethod %s:",((method->name == nullptr) ? "<nullptr>" : method->name));
+	fprintf(file,"\n,%s",((method->name == nullptr) ? "<nullptr>" : method->name));
 	if (method->method_ptr == nullptr) {
 		printError("method->method_ptr is nullptr");
 		return -1;
@@ -139,6 +140,7 @@ int testMethod(
 			testTime[t] = finishTime - startTime;
 			totalTime += testTime[t];
 		}
+		fprintf(file,",%.6lf",(fp64)testTime[t] / 1.0e6);
 		if (retVal < 0) {
 			printError("Method returned an error");
 			FREE(testTime);
@@ -156,9 +158,9 @@ int testMethod(
 			}
 		}
 		if ((errorCount <= patternSize * 2) && (patternSize * 2 < bufSize)) {
-			printf("\n\tWARNING : Errors detected (%zu) (%.3lf%%) Starting at [%zu] Check for off by 1 errors",errorCount,((fp64)errorCount / (fp64)bufSize) * 100.0,firstError);
+			printf("\n\tWARNING: Errors detected (%zu) (%.3lf%%) Starting at [%zu] Check for off by 1 errors",errorCount,((fp64)errorCount / (fp64)bufSize) * 100.0,firstError);
 		} else {
-			printf("\n\tWARNING : Errors detected (%zu) (%.3lf%%) Starting at [%zu]",errorCount,((fp64)errorCount / (fp64)bufSize) * 100.0,firstError);
+			printf("\n\tWARNING: Errors detected (%zu) (%.3lf%%) Starting at [%zu]",errorCount,((fp64)errorCount / (fp64)bufSize) * 100.0,firstError);
 		}
 	}
 	printTestStatistics(totalTime,testTime,testCount);
@@ -268,14 +270,29 @@ int main(int argc, char* argv[]) {
 	fflush(stdout);
 	Method_Truth(testData,bufSize,testPatternData,testPatternSize,box);
 
+	#define fileName "./results.csv"
+    FILE* file = fopen(fileName, "w");
+    if (file == nullptr) {
+        printError("Unable to write results to \"%s\". Ensure that other programs are not currently using \"%s\"",fileName,fileName);
+		FREE(testPatternData);
+		FREE(testData);
+		FREE(buf);
+        return -1; // Exit with an error code
+    }
+	fprintf(file,"\n,v%s,%s\n",PROGRAM_NAME,PROGRAM_VERSION);
+
 	size_t method_index = 0;
 	while (method_test_list[method_index].method_ptr != NULL) {
-	 	int retVal = testMethod(&method_test_list[method_index],buf,bufSize,testData,box,testCount,seed);
+	 	int retVal = testMethod(&method_test_list[method_index],buf,bufSize,testData,box,file,testCount,seed);
 		if (retVal < 0) {
+			fprintf(file,"Pattern-Copy encountered an error");
+			fclose(file);
 			return retVal;
 		}
 		method_index++;
 	}
+	fprintf(file, "\n");
+	fclose(file);
 	FREE(testPatternData);
 	FREE(testData);
 	FREE(buf);
